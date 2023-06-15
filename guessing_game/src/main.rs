@@ -9,23 +9,31 @@ fn main() {
 
     println!("秘密の数字は...{}", secret_number);
 
-    println!("予想を入力してみよう！");
-
-    let mut guess = String::new();
-
-    io::stdin()
-        .read_line(&mut guess)
-        .expect("Failed to read line");
-
-    let guess: u32 = guess.trim().parse().expect("Please type a number!");
-
-    println!("あなたの予想は{}です", guess);
-
     loop {
+        println!("予想を入力してみよう！");
+
+        let mut guess = String::new();
+
+        io::stdin()
+            .read_line(&mut guess)
+            .expect("Failed to read line");
+
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => num,
+            Err(_) => {
+                println!("有効な数字を入力してください！");
+                continue;
+            }
+        };
+
+        println!("あなたの予想は{}です", guess);
         match guess.cmp(&secret_number) {
             Ordering::Less => println!("小さすぎ"),
             Ordering::Greater => println!("大きすぎ"),
-            Ordering::Equal => println!("やったね！"),
+            Ordering::Equal => {
+                println!("やったね！");
+                break;
+            }
         }
     }
 }
