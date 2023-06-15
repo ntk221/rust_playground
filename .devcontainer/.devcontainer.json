@@ -1,0 +1,9 @@
+{
+  "image": "rustlang/rust:nightly",
+  "extensions": [
+    "vadimcn.vscode-lldb"
+  ],
+  "forwardPorts": [],
+  "postCreateCommand": "cargo build"
+}
+
