@@ -2,7 +2,8 @@
   "image": "rustlang/rust:nightly",
   "extensions": [
     "vadimcn.vscode-lldb",
-    "rust-lang.rust-analyzer"
+    "rust-lang.rust-analyzer",
+    "vim"
   ],
   "settings": {
     "editor.formatOnSave": true,
