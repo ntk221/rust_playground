@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use validator::Validate;
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -28,8 +29,10 @@ pub struct Todo {
     completed: bool,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Validate)]
 pub struct CreateTodo {
+    #[validate(length(min = 1, message = "text is required"))]
+    #[validate(length(max = 100, message = "text is too long"))]
     text: String,
 }
 
@@ -40,8 +43,10 @@ impl CreateTodo {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Validate)]
 pub struct UpdateTodo {
+    #[validate(length(min = 1, message = "text is required"))]
+    #[validate(length(max = 100, message = "text is too long"))]
     text: Option<String>,
     completed: Option<bool>,
 }
@@ -163,5 +168,6 @@ mod test {
         // delete
         let res = repository.delete(id);
         assert!(res.is_ok());
+
     }
 }

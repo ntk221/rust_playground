@@ -37,16 +37,17 @@ fn create_app<T: TodoRepository>(repository: T) -> Router {
     Router::new()
         .route("/", get(root)
         )
-        .route("/todos", 
+        .route(
+                "/todos", 
             post(create_todo::<T>)
-                    .get(all_todos::<T>)
+                        .get(all_todos::<T>)
         )
-        .route("/todos/:id",
+        .route(
+            "/todos/:id",
             get(find_todo::<T>)
-                    .patch(update_todo::<T>)
-                    .delete(delete_todo::<T>
-            )
-        )
+                        .patch(update_todo::<T>)
+                        .delete(delete_todo::<T>)
+         )
         .layer(Extension(Arc::new(repository))) // axumアプリケーション内でrepositoryを共有する
 }
 
@@ -167,6 +168,34 @@ mod test {
 
         let res = create_app(repository).oneshot(req).await.unwrap();
         assert_eq!(res.status(), StatusCode::NO_CONTENT)
+    }
+
+    #[tokio::test]
+    async fn shuuld_error_create_not_validated() {
+        let repository = TodoRepositoryForMemory::new();
+        let req = build_todo_req_with_json(
+            "/todos", 
+            Method::POST, 
+            r#"{"text": "" }"#.to_string()
+        );
+        let res = create_app(repository).oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST)
+    }
+
+    #[tokio::test]
+    async fn should_error_update_not_validated() {
+        let repository = TodoRepositoryForMemory::new();
+        repository.create(CreateTodo::new("should_error_update_not_validated".to_string()));
+        let text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum euismod feugiat convallis hogehoge hugahuga hogehoge hugahuga."; // 100文字を超える
+        let json = format!(r#"{{"text": "{}" }}"#, text).to_string();
+
+        let req = build_todo_req_with_json(
+            "/todos/1", 
+            Method::PATCH, 
+            json
+        );
+        let res = create_app(repository).oneshot(req).await.unwrap();
+        assert_eq!(res.status(), StatusCode::BAD_REQUEST)
     }
 
 }

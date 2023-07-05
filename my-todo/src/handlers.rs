@@ -1,14 +1,44 @@
 use axum::{
-    extract::{Extension, Path}, 
+    async_trait,
+    extract::{Extension, FromRequest, Path, RequestParts}, 
     http::StatusCode,
-    response::{IntoResponse, Json}
+    response::IntoResponse,
+    BoxError, Json,
 };
+use serde::de::DeserializeOwned;
 use std::{sync::Arc};
-
 use crate::repositories::{CreateTodo, TodoRepository, UpdateTodo};
+use validator::Validate;
+
+
+#[derive(Debug)]
+pub struct ValidatedJson<T>(T);
+
+#[async_trait]
+impl<T, B> FromRequest<B> for ValidatedJson<T>
+where
+    T: DeserializeOwned + Validate,
+    B: http_body::Body + Send,
+    B::Data: Send,
+    B::Error: Into<BoxError>,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let Json(value) = Json::<T>::from_request(req).await.map_err(|rejection| {
+            let message = format!("Json parse error: [{}]", rejection);
+            (StatusCode::BAD_REQUEST, message)
+        })?;
+        value.validate().map_err(|rejection| {
+            let message = format!("Validation error: [{}]", rejection).replace('\n', ", ");
+            (StatusCode::BAD_REQUEST, message)
+        })?;
+        Ok(ValidatedJson(value))
+    }
+}
 
 pub async fn create_todo<T: TodoRepository>(
-    Json(payload): Json<CreateTodo>,
+    ValidatedJson(payload): ValidatedJson<CreateTodo>,
     Extension(repository): Extension<Arc<T>>, // Extensionで包まれている
 ) -> impl IntoResponse {
     let todo = repository.create(payload);
@@ -35,7 +65,7 @@ pub async fn all_todos<T: TodoRepository>(
 
 pub async fn update_todo<T: TodoRepository>(
     Path(id): Path<u64>,
-    Json(payload): Json<UpdateTodo>,
+    ValidatedJson(payload): ValidatedJson<UpdateTodo>,
     Extension(repository): Extension<Arc<T>>,
 ) -> Result<impl IntoResponse, StatusCode> {
     let todo = repository
